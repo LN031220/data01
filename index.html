@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>实时二维码扫描</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .qrcode-container {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 2px dashed #dee2e6;
+        }
+        #qrImage {
+            width: 100%;
+            max-width: 300px;
+            height: auto;
+            border-radius: 10px;
+            transition: opacity 0.3s ease;
+        }
+        .loading {
+            opacity: 0.7;
+        }
+        .controls {
+            margin: 25px 0;
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+        .btn:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+        .btn:active {
+            transform: translateY(0);
+        }
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 8px;
+            background: #e9ecef;
+            font-size: 14px;
+        }
+        .success {
+            color: #28a745;
+        }
+        .error {
+            color: #dc3545;
+        }
+        .auto-refresh {
+            margin-top: 15px;
+            font-size: 12px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 扫描最新二维码</h1>
+        <p class="subtitle">实时更新，无需下载APP</p>
+        
+        <div class="qrcode-container">
+            <img id="qrImage" src="" alt="最新二维码">
+        </div>
+        
+        <div class="controls">
+            <button class="btn" onclick="refreshQR()">
+                🔄 刷新二维码
+            </button>
+            <button class="btn" onclick="toggleAutoRefresh()" id="autoRefreshBtn">
+                ⏰ 开启自动刷新
+            </button>
+        </div>
+        
+        <div class="status">
+            <strong>状态:</strong> 
+            <span id="statusText">等待加载...</span>
+            <br>
+            <strong>最后更新:</strong> 
+            <span id="updateTime">-</span>
+        </div>
+        
+        <div class="auto-refresh" id="autoRefreshStatus">
+            自动刷新已关闭（每30秒）
+        </div>
+    </div>
+
+    <script>
+        // 配置您的GitHub图片链接
+        const QR_IMAGE_URL = 'https://ln031220.github.io/data01/QQ20251120-113218.png';
+        
+        let autoRefreshInterval = null;
+        
+        function refreshQR() {
+            const img = document.getElementById('qrImage');
+            const statusText = document.getElementById('statusText');
+            const updateTime = document.getElementById('updateTime');
+            
+            // 显示加载状态
+            img.classList.add('loading');
+            statusText.textContent = '加载中...';
+            statusText.className = '';
+            
+            // 添加时间戳避免浏览器缓存
+            const timestamp = new Date().getTime();
+            const urlWithTimestamp = `${QR_IMAGE_URL}?t=${timestamp}`;
+            
+            img.src = urlWithTimestamp;
+            
+            // 图片加载成功
+            img.onload = function() {
+                img.classList.remove('loading');
+                statusText.textContent = '加载成功';
+                statusText.className = 'success';
+                updateTime.textContent = new Date().toLocaleString('zh-CN');
+            };
+            
+            // 图片加载失败
+            img.onerror = function() {
+                img.classList.remove('loading');
+                statusText.textContent = '加载失败，请检查网络或二维码是否存在';
+                statusText.className = 'error';
+                updateTime.textContent = '-';
+            };
+        }
+        
+        function toggleAutoRefresh() {
+            const btn = document.getElementById('autoRefreshBtn');
+            const status = document.getElementById('autoRefreshStatus');
+            
+            if (autoRefreshInterval) {
+                // 关闭自动刷新
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+                btn.textContent = '⏰ 开启自动刷新';
+                status.textContent = '自动刷新已关闭';
+            } else {
+                // 开启自动刷新（每30秒）
+                autoRefreshInterval = setInterval(refreshQR, 30000);
+                btn.textContent = '⏹️ 停止自动刷新';
+                status.textContent = '自动刷新已开启（每30秒）';
+                // 立即刷新一次
+                refreshQR();
+            }
+        }
+        
+        // 页面加载时初始化
+        window.onload = function() {
+            refreshQR();
+        };
+        
+        // 页面可见性改变时处理
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden && autoRefreshInterval) {
+                // 页面隐藏时暂停自动刷新以节省资源
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+                document.getElementById('autoRefreshBtn').textContent = '⏰ 开启自动刷新';
+            }
+        });
+    </script>
+</body>
+</html>
