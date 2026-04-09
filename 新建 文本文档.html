@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>🔋 电池技术标准知识库</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #f5f7fb;
+            margin: 0;
+            padding: 16px;
+            color: #1e293b;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .header {
+            background: white;
+            border-radius: 28px;
+            padding: 20px 20px 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            margin-bottom: 20px;
+            border: 1px solid #eef2f6;
+        }
+        h1 {
+            font-size: 1.7rem;
+            margin: 0 0 6px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .sub {
+            color: #5b6e8c;
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+            border-left: 3px solid #3b82f6;
+            padding-left: 12px;
+        }
+        .search-box {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+        .search-input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+        .search-input {
+            width: 100%;
+            padding: 14px 18px;
+            font-size: 1rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 44px;
+            background: #ffffff;
+            transition: 0.2s;
+            outline: none;
+            font-weight: 500;
+        }
+        .search-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 0 24px;
+            border-radius: 44px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        button:active {
+            transform: scale(0.97);
+            background: #2563eb;
+        }
+        .stats {
+            font-size: 0.8rem;
+            color: #4b5565;
+            margin: 12px 0 0 8px;
+        }
+        .result-card {
+            background: white;
+            border-radius: 24px;
+            padding: 18px;
+            margin-bottom: 14px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+            border: 1px solid #edf2f7;
+            transition: 0.1s;
+        }
+        .line-info {
+            color: #6c7a91;
+            font-size: 0.7rem;
+            margin-bottom: 8px;
+            font-family: monospace;
+        }
+        .content {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 48px 20px;
+            background: white;
+            border-radius: 36px;
+            color: #6c7a91;
+        }
+        mark {
+            background: #fde047;
+            color: #1e293b;
+            border-radius: 8px;
+            padding: 0 2px;
+        }
+        footer {
+            margin-top: 28px;
+            text-align: center;
+            font-size: 0.7rem;
+            color: #8b9ab0;
+        }
+        .loading {
+            text-align: center;
+            padding: 48px 20px;
+            background: white;
+            border-radius: 36px;
+            color: #3b82f6;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🔋 电池技术标准库</h1>
+        <div class="sub">岗位能力标准 · 核心知识点 · 全文检索</div>
+        
+        <div class="search-box">
+            <div class="search-input-wrapper">
+                <input type="text" id="keywordInput" class="search-input" placeholder="输入关键词，例如：磷酸铁锂 或 故障排查" autocomplete="off">
+            </div>
+            <button id="searchBtn">🔍 搜索</button>
+        </div>
+        <div class="stats" id="statsInfo">📌 正在加载知识库...</div>
+    </div>
+
+    <div id="resultsContainer">
+        <div class="empty-state">
+            ⚡ 输入关键词，从岗位标准中检索<br>支持搜索章节、知识点、详细内容
+        </div>
+    </div>
+    <footer>
+        📄 数据来源：电池技术支持工程师岗位能力标准 | 本地搜索，隐私安全
+    </footer>
+</div>
+
+<script>
+    // ============================================================
+    // 您提供的 Raw 链接（已确认可以触发下载，现强制读取文本）
+    // ============================================================
+    const TXT_FILE_URL = 'https://raw.githubusercontent.com/LN031220/data01/refs/heads/main/%E7%94%B5%E6%B1%A0%E6%8A%80%E6%9C%AF%E6%94%AF%E6%8C%81%E5%B7%A5%E7%A8%8B%E5%B8%88%E5%B2%97%E4%BD%8D%E8%83%BD%E5%8A%9B%E6%A0%87%E5%87%86.txt';
+    // ============================================================
+
+    let fullText = '';
+    let lines = [];
+    let isLoaded = false;
+
+    const resultsDiv = document.getElementById('resultsContainer');
+    const statsSpan = document.getElementById('statsInfo');
+    const keywordInput = document.getElementById('keywordInput');
+    const searchBtn = document.getElementById('searchBtn');
+
+    // 显示加载状态
+    statsSpan.innerHTML = '⏳ 正在加载岗位标准文档...';
+    resultsDiv.innerHTML = '<div class="loading">📥 正在加载知识库，请稍候...</div>';
+
+    // 获取文本文件 - 使用强制文本读取方式
+    fetch(TXT_FILE_URL, {
+        mode: 'cors',        // 尝试跨域请求
+        cache: 'no-cache'    // 避免缓存问题
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            // 关键：强制以文本形式读取，无论服务器返回什么头信息
+            return response.text();
+        })
+        .then(text => {
+            fullText = text;
+            lines = text.split(/\r?\n/);
+            isLoaded = true;
+            statsSpan.innerHTML = `✅ 加载成功 | 共 ${lines.length} 行 | 可开始搜索`;
+            resultsDiv.innerHTML = '<div class="empty-state">🔎 输入关键词，搜索岗位能力标准与核心知识点</div>';
+            console.log('文档已加载，行数：', lines.length);
+            // 可选：在控制台输出前几行内容以便调试
+            console.log('前3行内容预览：', lines.slice(0, 3));
+        })
+        .catch(err => {
+            console.error('加载失败：', err);
+            let errorMsg = err.message;
+            if (errorMsg.includes('Failed to fetch')) {
+                errorMsg = '网络请求失败。可能原因：\n1. 链接触发了下载而不是返回文本，但代码已尝试强制读取\n2. 网络不稳定或跨域问题（可尝试将HTML文件放到本地服务器运行）\n3. 浏览器安全策略阻止';
+            } else if (errorMsg.includes('HTTP 404')) {
+                errorMsg = '文件未找到 (404)。请确认链接是否正确。';
+            }
+            statsSpan.innerHTML = '❌ 加载失败';
+            resultsDiv.innerHTML = `<div class="empty-state">⚠️ 无法加载文档：${errorMsg}<br><br>💡 解决建议：<br>1. 尝试用记事本打开这个链接，确认能正常看到文本内容<br>2. 如果看到乱码，说明链接可能指向二进制文件<br>3. 如果链接是有效的，可以尝试将本HTML文件上传到一个简单的本地服务器环境运行（如用VS Code的Live Server）</div>`;
+        });
+
+    // 高亮关键词
+    function highlightText(text, keyword) {
+        if (!keyword.trim()) return text;
+        const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(`(${escaped})`, 'gi');
+        return text.replace(regex, `<mark>$1</mark>`);
+    }
+
+    // 执行搜索
+    function performSearch() {
+        if (!isLoaded) {
+            resultsDiv.innerHTML = '<div class="loading">⏳ 知识库尚未加载完成，请稍后重试</div>';
+            return;
+        }
+
+        const keyword = keywordInput.value.trim();
+        if (keyword === '') {
+            resultsDiv.innerHTML = '<div class="empty-state">📖 输入关键词开始检索岗位能力标准</div>';
+            statsSpan.innerHTML = `✅ 已加载 ${lines.length} 行 | 等待搜索`;
+            return;
+        }
+
+        // 创建正则，不区分大小写
+        const regex = new RegExp(keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+        const matchedItems = [];
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            if (regex.test(line)) {
+                matchedItems.push({
+                    lineNum: i + 1,
+                    text: line
+                });
+            }
+        }
+
+        if (matchedItems.length === 0) {
+            resultsDiv.innerHTML = `<div class="empty-state">😢 未找到包含“${keyword}”的内容<br>试试其他关键词，如“电池原理”、“BMS”、“故障”</div>`;
+            statsSpan.innerHTML = `🔍 搜索“${keyword}” | 找到 0 条匹配`;
+            return;
+        }
+
+        // 限制显示最多80条，避免性能问题
+        const displayLimit = 80;
+        const showCount = Math.min(matchedItems.length, displayLimit);
+        let resultsHtml = `<div style="margin-bottom: 16px;">✅ 找到 ${matchedItems.length} 条匹配内容${matchedItems.length > displayLimit ? ` (仅显示前${displayLimit}条)` : ''}：</div>`;
+
+        for (let i = 0; i < showCount; i++) {
+            const item = matchedItems[i];
+            const highlightedText = highlightText(item.text, keyword);
+            resultsHtml += `
+                <div class="result-card">
+                    <div class="line-info">📄 第 ${item.lineNum} 行</div>
+                    <div class="content">${highlightedText}</div>
+                </div>
+            `;
+        }
+
+        resultsDiv.innerHTML = resultsHtml;
+        statsSpan.innerHTML = `🔍 搜索“${keyword}” | 找到 ${matchedItems.length} 条匹配`;
+    }
+
+    // 绑定事件
+    searchBtn.addEventListener('click', performSearch);
+    keywordInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            performSearch();
+        }
+    });
+</script>
+</body>
+</html>
